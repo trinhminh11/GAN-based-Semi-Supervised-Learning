@@ -7,6 +7,11 @@ from torchvision.datasets import MNIST, CIFAR10
 import matplotlib.pyplot as plt
 import numpy as np
 
+def get_PATH(name):
+	if config.NUM_LABELLED == -1:
+		return f'{config.USED_DATA}/{name}'
+	else:
+		return f'{config.USED_DATA}/{name}{config.NUM_LABELLED}'
 
 def mapping(value, s1, e1, s2, e2):
 	return s2 + (e2 - s2) * ((value-s1)/(e1-s1))
