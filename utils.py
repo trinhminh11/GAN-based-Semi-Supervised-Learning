@@ -8,10 +8,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def get_PATH(name):
+	'''
+	get PATH to store data
+	'''
 	if config.NUM_LABELLED == -1:
 		return f'{config.USED_DATA}/{name}'
 	else:
 		return f'{config.USED_DATA}/{name}{config.NUM_LABELLED}'
+
+def set_random_seed(seed: int) -> None:
+    """
+    Sets the seeds at a certain value.
+    :param seed: the value to be set
+    """
+    print("Setting seeds ...... \n")
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic=  True
 
 def mapping(value, s1, e1, s2, e2):
 	return s2 + (e2 - s2) * ((value-s1)/(e1-s1))
@@ -184,7 +201,7 @@ def plotting(history, sched_lr = False):
 		batch_length = len(history['lrs']) // epochs
 
 		t = epochs//5
-		
+
 		xticks = np.arange(0, len(history['lrs'])+1, t*batch_length)
 		xlabels = np.arange(0, len(xticks))*t
 
