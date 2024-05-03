@@ -14,7 +14,7 @@ def get_PATH(name):
 	if config.NUM_LABELLED == -1:
 		return f'{config.USED_DATA}/{name}'
 	else:
-		return f'{config.USED_DATA}/{name}{config.NUM_LABELLED}'
+		return f'{config.USED_DATA}/{name}/_{config.NUM_LABELLED}'
 
 def set_random_seed(seed: int) -> None:
     """
