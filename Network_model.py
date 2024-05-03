@@ -1,26 +1,5 @@
-import torch
 import torch.nn as nn
-
-class GlobalHybridPooling(nn.Module):
-	def __init__(self, init_alpha = None):
-		super().__init__()
-
-		self.average = nn.AdaptiveAvgPool2d((1, 1))
-
-		self.max = nn.AdaptiveMaxPool2d((1, 1))
-
-		if init_alpha:
-			self.alpha = nn.Parameter(torch.Tensor(init_alpha))
-		else:
-			self.alpha = nn.Parameter(torch.rand(1))
-		
-	def forward(self, X: torch.Tensor):
-		avaragePool = self.average(X)
-		maxPool = self.max(X)
-
-		self.alpha.data = self.alpha.data.clamp(0, 1)
-
-		return self.alpha * avaragePool + (1 - self.alpha) * maxPool
+from torch import Tensor, flatten
 
 
 class ConvBn(nn.Module):
@@ -45,7 +24,7 @@ class ConvBn(nn.Module):
 		else:
 			self.pool = nn.Identity()
 
-	def forward(self, X: torch.Tensor):
+	def forward(self, X: Tensor):
 		out = self.Conv(X)
 		out = self.Bn(out)
 		out = self.act(out)
@@ -72,7 +51,7 @@ class ConvModel(nn.Module):
 		self.flatten = nn.Flatten()
 
 		
-	def forward(self, X: torch.Tensor):
+	def forward(self, X: Tensor):
 		out = self.conv1(X)
 		out = self.conv2(out)
 		out = self.conv3(out)
@@ -83,18 +62,72 @@ class ConvModel(nn.Module):
 		if out.dim() == 4:
 			out = self.flatten(out)
 		else:
-			out = torch.flatten(out)
+			out = flatten(out)
 
 		return out
 
-def main():
-	c = ConvModel(3)
+class TransposeBN(nn.Module):
+	'''
+	default: upsample, doubling input_size
+	'''
+	def __init__(self, in_channels, out_channels, kernel_size = 4, stride=2, padding=1) -> None:
+		'''
+		default: upsample, doubling input_size
+		'''
+		super().__init__()
 
-	X = torch.zeros(1, 3, 32, 32)
-	out = c(X)
-	print(out)
+		self.deConv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
+		self.Bn = nn.BatchNorm2d(out_channels)
+		self.act = nn.ReLU(inplace=True)
+	
+	def forward(self, X: Tensor):
+		X = self.deConv(X)
+		X = self.Bn(X)
+		X = self.act(X)
+		return X
 
+class Generator(nn.Module):
+	def __init__(self, inp_size, out_size) -> None:
+		super().__init__()
 
-if __name__ == "__main__":
-	main()
+		out_channels = out_size[0]
 
+		ngf = 128
+
+		# inp_sizex1x1
+		self.deConv = nn.Sequential(
+			TransposeBN(inp_size, ngf*8, 4, 1, 0),	# 1024x4x4
+			TransposeBN(ngf*8, ngf*4),				# 512x8x8
+			TransposeBN(ngf*4, ngf*2),				# 256x16x16
+			TransposeBN(ngf*2, ngf),				# 128x32x32
+		)
+
+		self.out = nn.Sequential(
+			nn.ConvTranspose2d(64, out_size[0], (3, 3), (2, 2)),
+			nn.AdaptiveAvgPool2d((out_size[1], out_size[2])),
+			nn.Tanh()
+		)
+	
+	def forward(self, X: Tensor):
+		X = self.deConv(X)
+
+		X = self.out(X)
+
+		return X
+
+class Discriminator(nn.Module):
+	def __init__(self, in_channels, n_classes) -> None:
+		super().__init__()
+
+		self.feature_extracter = ConvModel(in_channels)
+
+		self.classifier = nn.Linear(512, n_classes)
+
+		self.discriminator = nn.Linear(512, 1)
+	
+	def forward(self, X: Tensor):
+		
+		X = self.feature_extracter(X)
+
+		return self.classifier(X), self.discriminator(X)
+	

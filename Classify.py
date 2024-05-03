@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from model import ConvModel
+from Network_model import ConvModel
 from utils import DeviceDataLoader
 from torch import Tensor
 
