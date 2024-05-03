@@ -7,8 +7,6 @@ from torchvision.datasets import MNIST, CIFAR10
 import matplotlib.pyplot as plt
 import numpy as np
 
-from matplotlib.axes import Axes
-
 
 def mapping(value, s1, e1, s2, e2):
 	return s2 + (e2 - s2) * ((value-s1)/(e1-s1))
@@ -18,24 +16,40 @@ def one_hot(y):
 	one_hot_y[torch.arange(len(y)), y] = 1
 	return one_hot_y
 
-def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes):
+def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
+	X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
 
 	if n_samples == -1:
 		n_samples = X.shape[0]
 
+	if n_samples == X.shape[0]:
+		if get_unsup:
+			return X, y, Tensor(), Tensor()
+		else:
+			return X, y
+
 	n_per_class = n_samples//n_classes
-	
 
 	for i in range(n_classes):
 		X_with_class = X[y == i]
-		ix = torch.randint(0, len(X_with_class), [n_per_class])
+		idx = torch.randperm(len(X_with_class))
 
-		X_sup = torch.cat((X_sup, X_with_class[ix]))
-		y_sup = torch.cat((y_sup, Tensor([i]*n_per_class).type_as(y)))
+		sup_idx = idx[:n_per_class]
+		unsup_idx = idx[n_per_class:]
 
+		X_sup = torch.cat((X_sup, X_with_class[sup_idx]))
+		y_sup = torch.cat((y_sup, Tensor([i]*len(sup_idx)).type_as(y)))
 
-	return X_sup, y_sup
+		X_unsup = torch.cat((X_unsup, X_with_class[unsup_idx]))
+		y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
+	
+	if get_unsup:
+
+		return X_sup, y_sup, X_unsup, y_unsup
+
+	else:
+		return X_sup, y_sup
 
 def to_device(data: Tensor, device):
 	if isinstance(data, (list, tuple)):
