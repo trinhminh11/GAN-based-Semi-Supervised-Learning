@@ -109,6 +109,14 @@ class Generator(nn.Module):
 		)
 	
 	def forward(self, X: Tensor):
+		if X.dim() == 1:
+			size = len(X)
+			X = X.reshape(size, 1, 1).unsqueeze(0)
+		
+		elif X.dim() == 2:
+			B, size = X.shape
+			X = X.reshape(B, size, 1, 1)
+
 		X = self.deConv(X)
 
 		X = self.out(X)
@@ -126,6 +134,11 @@ class Discriminator(nn.Module):
 		self.discriminator = nn.Linear(512, 1)
 	
 	def forward(self, X: Tensor):
+		if X.dim() == 2:
+			X = X.unsqueeze(0)
+
+		if X.dim() == 3:
+			X = X.unsqueeze(0)
 		
 		X = self.feature_extracter(X)
 
