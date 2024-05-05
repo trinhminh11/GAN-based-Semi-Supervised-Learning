@@ -103,7 +103,7 @@ class Generator(nn.Module):
 		)
 
 		self.out = nn.Sequential(
-			nn.ConvTranspose2d(64, out_size[0], (3, 3), (2, 2)),
+			nn.ConvTranspose2d(ngf, out_size[0], (3, 3), (2, 2)),
 			nn.AdaptiveAvgPool2d((out_size[1], out_size[2])),
 			nn.Tanh()
 		)
@@ -133,7 +133,7 @@ class Discriminator(nn.Module):
 
 		self.discriminator = nn.Linear(512, 1)
 	
-	def forward(self, X: Tensor):
+	def _forward_imply(self, X: Tensor):
 		if X.dim() == 2:
 			X = X.unsqueeze(0)
 
@@ -142,5 +142,23 @@ class Discriminator(nn.Module):
 		
 		X = self.feature_extracter(X)
 
-		return self.classifier(X), self.discriminator(X)
+		return X
 	
+	def forward(self, X: Tensor, out_return = 'classifier'):
+		'''
+		out_return: both, discriminator, classifier
+		'''
+		X = self._forward_imply(X)
+
+		if out_return == 'both':
+
+			return self.classifier(X), self.discriminator(X)
+
+		elif out_return == 'discriminator':
+			return self.discriminator(X)
+
+		elif out_return == 'classifier':
+			return self.classifier(X)	
+
+		else:
+			raise ValueError("out_return should be \"both\", \"discriminator\" or \"classifier\"")

@@ -170,6 +170,8 @@ class DeviceDataLoader():
 	def __init__(self, dl: DataLoader, device):
 		self.dl = dl
 		self.device = device
+
+		self.batch_size = self.dl.batch_size
 		
 	def __iter__(self):
 		for b in self.dl: 

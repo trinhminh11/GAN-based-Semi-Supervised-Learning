@@ -25,3 +25,9 @@ epochs = 20, LEARNING_RATE = 0.0004, threshold = 0.09925, weight_decay = 0, grad
 full label: BATCH_SIZE = 512
 other: BATCH_SIZE = 32
 '''
+
+
+
+# GAN Config
+
+GAN_BATCH_SIZE = 512
