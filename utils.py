@@ -2,72 +2,101 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 import config
-from torchvision.datasets import MNIST, CIFAR10
+import torchvision.datasets as datasets
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from matplotlib.axes import Axes
+def get_PATH(name):
+	'''
+	get PATH to store data
+	'''
+	if config.NUM_LABELLED == -1:
+		return f'{config.USED_DATA}/{name}'
+	else:
+		return f'{config.USED_DATA}/{name}/_{config.NUM_LABELLED}'
 
+def set_random_seed(seed: int) -> None:
+    """
+    Sets the seeds at a certain value.
+    :param seed: the value to be set
+    """
+    print("Setting seeds ...... \n")
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic=  True
 
-def mapping(value, s1, e1, s2, e2):
-	return s2 + (e2 - s2) * ((value-s1)/(e1-s1))
 
 def one_hot(y):
 	one_hot_y = torch.zeros((len(y), 10))
 	one_hot_y[torch.arange(len(y)), y] = 1
 	return one_hot_y
 
-def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes):
+def CreateDataLoader(X: Tensor, y: Tensor, batch_size, transform, device): 
+	ds = CustomDataSet(X, y, transform) 
+	dl = DataLoader(ds, batch_size, shuffle = True, num_workers=3) 
+	dl = DeviceDataLoader(dl, device) 
+
+	return dl
+def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
+	X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
 
 	if n_samples == -1:
 		n_samples = X.shape[0]
 
+	if n_samples == X.shape[0]:
+		if get_unsup:
+			return X, y, Tensor(), Tensor()
+		else:
+			return X, y
+
 	n_per_class = n_samples//n_classes
-	
 
 	for i in range(n_classes):
 		X_with_class = X[y == i]
-		ix = torch.randint(0, len(X_with_class), [n_per_class])
+		idx = torch.randperm(len(X_with_class))
 
-		X_sup = torch.cat((X_sup, X_with_class[ix]))
-		y_sup = torch.cat((y_sup, Tensor([i]*n_per_class).type_as(y)))
+		sup_idx = idx[:n_per_class]
+		unsup_idx = idx[n_per_class:]
 
+		X_sup = torch.cat((X_sup, X_with_class[sup_idx]))
+		y_sup = torch.cat((y_sup, Tensor([i]*len(sup_idx)).type_as(y)))
 
-	return X_sup, y_sup
+		X_unsup = torch.cat((X_unsup, X_with_class[unsup_idx]))
+		y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
+	
+	if get_unsup:
 
-def to_device(data: Tensor, device):
+		return X_sup, y_sup, X_unsup, y_unsup
+
+	else:
+		return X_sup, y_sup
+
+def to_device(data: Tensor, device) -> Tensor:
 	if isinstance(data, (list, tuple)):
 		return [to_device(x, device) for x in data]
+	
 	return data.to(device, non_blocking=True)
 
-def load_data(start = 0, end = 1):
-	if config.USED_DATA == "MNIST":
-		data = MNIST(config.DATA_DIR, train = True, download=True)
-		X_train = data.data.unsqueeze(1).float()
+def load_data(train_transform = None, test_transform = None):
+	ldict = {}
+	
+	test_dataset: Dataset = None
+	exec(f'train_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = True, download = True, transform = train_transform)', globals().update(locals()), ldict)
+	exec(f'test_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = False, download = True, transform = test_transform)', globals().update(locals()), ldict)
+	train_dataset: Dataset = ldict['train_dataset']
+	test_dataset: Dataset = ldict['test_dataset']
 
-		test_data = MNIST(config.DATA_DIR, train = False, download=True)
-		X_test = test_data.data.unsqueeze(1).float()
-
-	if config.USED_DATA == "CIFAR10":
-		data = CIFAR10(config.DATA_DIR, train = True, download=True)
-		X_train = Tensor(data.data)
-		X_train = X_train.permute(0, 3, 1, 2)
-
-		test_data = CIFAR10(config.DATA_DIR, train = False, download=True)
-		X_test = Tensor(test_data.data)
-		X_test = X_test.permute(0, 3, 1, 2)
-
-
-	X_train = mapping(X_train, 0, 255, start, end)
-	y_train = Tensor(data.targets)
-
-	X_test = mapping(X_test, 0, 255, start, end)
-	y_test = Tensor(test_data.targets)
+	return train_dataset, test_dataset, train_dataset.classes
 
 	
-	return X_train, y_train, X_test, y_test, data.classes
+	# return X_train, y_train, X_test, y_test, data.classes
+
 
 def print_config():
 	
@@ -134,6 +163,8 @@ class DeviceDataLoader():
 	def __init__(self, dl: DataLoader, device):
 		self.dl = dl
 		self.device = device
+
+		self.batch_size = self.dl.batch_size
 		
 	def __iter__(self):
 		for b in self.dl: 
@@ -165,7 +196,7 @@ def plotting(history, sched_lr = False):
 		batch_length = len(history['lrs']) // epochs
 
 		t = epochs//5
-		
+
 		xticks = np.arange(0, len(history['lrs'])+1, t*batch_length)
 		xlabels = np.arange(0, len(xticks))*t
 
