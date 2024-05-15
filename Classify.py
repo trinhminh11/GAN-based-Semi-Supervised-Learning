@@ -68,7 +68,7 @@ class Classifier(nn.Module):
 		for param_group in optimizer.param_groups:
 			return param_group['lr']
 
-	def step(self, batch) -> tuple[Tensor, Tensor]:
+	def step(self, batch):
 		images, labels = batch 
   
 		outs = self(images)                  

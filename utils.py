@@ -36,6 +36,12 @@ def one_hot(y):
 	one_hot_y[torch.arange(len(y)), y] = 1
 	return one_hot_y
 
+def CreateDataLoader(X: Tensor, y: Tensor, batch_size, transform, device): 
+	ds = CustomDataSet(X, y, transform) 
+	dl = DataLoader(ds, batch_size, shuffle = True, num_workers=3) 
+	dl = DeviceDataLoader(dl, device) 
+
+	return dl
 def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
 	X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
