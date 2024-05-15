@@ -1,5 +1,5 @@
 import torch.nn as nn
-from torch import Tensor, flatten
+from torch import Tensor, flatten, argmax
 
 
 class ConvBn(nn.Module):
@@ -35,27 +35,36 @@ class ConvModel(nn.Module):
 	'''
 	return a Flatten with 512 features
 	'''
-	def __init__(self, in_channels):
+	def __init__(self, in_channels, filters = [64, 128, 256, 512]):
 		'''
 		return a Flatten with 512 features
 		'''
 		super().__init__()
-		
-		self.conv1 = ConvBn(in_channels, 64)				# 3, 32, 32 		-> 64, n, n
-		self.conv2 = ConvBn(64, 128, pool=True)				# 64, 32, 32 		-> 128, n//2, n//2
-		self.conv3 = ConvBn(128, 256, pool=True)			# 128, 16, 16 		-> 256, n//4, n//4
-		self.conv4 = ConvBn(256, 512)						# 256, 8, 8			-> 512, n//4, n//4
+
+		self.initial = nn.Sequential(						# 3, n, n 		-> 64, n, n
+			nn.Conv2d(in_channels, filters[0], 3, 1, 1),
+			nn.ReLU(True)
+		)
+
+		layers = []
+
+		for i in range(1, len(filters)):
+			if i == len(filters)-1:
+				layers.append(ConvBn(filters[i-1], filters[i]))
+				break
+			layers.append(ConvBn(filters[i-1], filters[i], pool=True))
+
+		self.Conv = nn.Sequential(*layers)
+
 		# self.adaptivePool = GlobalHybridPooling()
-		self.adaptivePool = nn.AdaptiveMaxPool2d((1, 1))	# 512, n//4, n//4 	-> 512, 1, 1
+		self.adaptivePool = nn.AdaptiveMaxPool2d((1, 1))	# 512, n, n		-> 512, 1, 1
 
 		self.flatten = nn.Flatten()
 
 		
 	def forward(self, X: Tensor):
-		out = self.conv1(X)
-		out = self.conv2(out)
-		out = self.conv3(out)
-		out = self.conv4(out)
+		out = self.initial(X)
+		out = self.Conv(out)
 
 		out = self.adaptivePool(out)
 
@@ -70,13 +79,13 @@ class TransposeBN(nn.Module):
 	'''
 	default: upsample, doubling input_size
 	'''
-	def __init__(self, in_channels, out_channels, kernel_size = 4, stride=2, padding=1) -> None:
+	def __init__(self, in_channels, out_channels, kernel_size = 4, stride=2, padding=1, bias=False) -> None:
 		'''
 		default: upsample, doubling input_size
 		'''
 		super().__init__()
 
-		self.deConv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
+		self.deConv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
 		self.Bn = nn.BatchNorm2d(out_channels)
 		self.act = nn.ReLU(inplace=True)
 	
@@ -127,11 +136,11 @@ class Discriminator(nn.Module):
 	def __init__(self, in_channels, n_classes) -> None:
 		super().__init__()
 
+		self.n_classes = n_classes
+
 		self.feature_extracter = ConvModel(in_channels)
 
-		self.classifier = nn.Linear(512, n_classes)
-
-		self.discriminator = nn.Linear(512, 1)
+		self.discriminator = nn.Linear(512, n_classes+1)
 	
 	def _forward_imply(self, X: Tensor):
 		if X.dim() == 2:
@@ -144,21 +153,15 @@ class Discriminator(nn.Module):
 
 		return X
 	
-	def forward(self, X: Tensor, out_return = 'classifier'):
-		'''
-		out_return: both, discriminator, classifier
-		'''
+	def forward(self, X: Tensor):
 		X = self._forward_imply(X)
 
-		if out_return == 'both':
+		return self.discriminator(X)
+	
+	def classify(self, X: Tensor):
+		return self.forward(X)[:, :-1]
+	
+	def discriminate(self, X):
+		return self.forward(X)[:, -1]
+		
 
-			return self.classifier(X), self.discriminator(X)
-
-		elif out_return == 'discriminator':
-			return self.discriminator(X)
-
-		elif out_return == 'classifier':
-			return self.classifier(X)	
-
-		else:
-			raise ValueError("out_return should be \"both\", \"discriminator\" or \"classifier\"")

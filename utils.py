@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 import config
-from torchvision.datasets import MNIST, CIFAR10
+import torchvision.datasets as datasets
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,8 +30,6 @@ def set_random_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic=  True
 
-def mapping(value, s1, e1, s2, e2):
-	return s2 + (e2 - s2) * ((value-s1)/(e1-s1))
 
 def one_hot(y):
 	one_hot_y = torch.zeros((len(y), 10))
@@ -73,37 +71,26 @@ def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = F
 	else:
 		return X_sup, y_sup
 
-def to_device(data: Tensor, device):
+def to_device(data: Tensor, device) -> Tensor:
 	if isinstance(data, (list, tuple)):
 		return [to_device(x, device) for x in data]
+	
 	return data.to(device, non_blocking=True)
 
-def load_data(start = 0, end = 1):
-	if config.USED_DATA == "MNIST":
-		data = MNIST(config.DATA_DIR, train = True, download=True)
-		X_train = data.data.unsqueeze(1).float()
+def load_data(train_transform = None, test_transform = None):
+	ldict = {}
+	
+	test_dataset: Dataset = None
+	exec(f'train_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = True, download = True, transform = train_transform)', globals().update(locals()), ldict)
+	exec(f'test_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = False, download = True, transform = test_transform)', globals().update(locals()), ldict)
+	train_dataset: Dataset = ldict['train_dataset']
+	test_dataset: Dataset = ldict['test_dataset']
 
-		test_data = MNIST(config.DATA_DIR, train = False, download=True)
-		X_test = test_data.data.unsqueeze(1).float()
-
-	if config.USED_DATA == "CIFAR10":
-		data = CIFAR10(config.DATA_DIR, train = True, download=True)
-		X_train = Tensor(data.data)
-		X_train = X_train.permute(0, 3, 1, 2)
-
-		test_data = CIFAR10(config.DATA_DIR, train = False, download=True)
-		X_test = Tensor(test_data.data)
-		X_test = X_test.permute(0, 3, 1, 2)
-
-
-	X_train = mapping(X_train, 0, 255, start, end)
-	y_train = Tensor(data.targets)
-
-	X_test = mapping(X_test, 0, 255, start, end)
-	y_test = Tensor(test_data.targets)
+	return train_dataset, test_dataset, train_dataset.classes
 
 	
-	return X_train, y_train, X_test, y_test, data.classes
+	# return X_train, y_train, X_test, y_test, data.classes
+
 
 def print_config():
 	
