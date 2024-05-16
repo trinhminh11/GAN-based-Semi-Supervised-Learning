@@ -7,6 +7,8 @@ import torchvision.datasets as datasets
 import matplotlib.pyplot as plt
 import numpy as np
 
+from typing import overload
+
 def get_PATH(name):
 	'''
 	get PATH to store data
@@ -30,6 +32,47 @@ def set_random_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic=  True
 
+class CustomDataSet(Dataset):
+	def __init__(self, x: Tensor, y: Tensor, transform = None) -> None:
+		self.x: Tensor = x
+		self.y: Tensor = y
+		
+		self.n_samples = len(x)
+
+		self.transform = transform
+
+
+	def __getitem__(self, index):
+		x_sample = self.x[index]
+		if self.y != None:
+			y_sample = self.y[index]
+		if self.transform:
+			x_sample = self.transform(x_sample).type_as(x_sample)
+
+		if self.y != None:
+			return x_sample, y_sample
+		else:
+			return x_sample
+	
+	def __len__(self):
+		return self.n_samples
+
+class DeviceDataLoader():
+	def __init__(self, dl: DataLoader, device):
+		self.dl = dl
+		self.device = device
+
+		self.batch_size = self.dl.batch_size
+		
+	def __iter__(self):
+		for b in self.dl: 
+			yield to_device(b, self.device)
+
+	def __len__(self):
+		return len(self.dl)
+
+	def num_data(self):
+		return len(self.dl.dataset)
 
 def one_hot(y):
 	one_hot_y = torch.zeros((len(y), 10))
@@ -44,7 +87,8 @@ def CreateDataLoader(X: Tensor, y: Tensor, batch_size, transform, device):
 	return dl
 def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
-	X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
+	if get_unsup:
+		X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
 
 	if n_samples == -1:
 		n_samples = X.shape[0]
@@ -62,16 +106,16 @@ def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = F
 		idx = torch.randperm(len(X_with_class))
 
 		sup_idx = idx[:n_per_class]
-		unsup_idx = idx[n_per_class:]
 
 		X_sup = torch.cat((X_sup, X_with_class[sup_idx]))
 		y_sup = torch.cat((y_sup, Tensor([i]*len(sup_idx)).type_as(y)))
 
-		X_unsup = torch.cat((X_unsup, X_with_class[unsup_idx]))
-		y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
+		if get_unsup:
+			unsup_idx = idx[n_per_class:]
+			X_unsup = torch.cat((X_unsup, X_with_class[unsup_idx]))
+			y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
 	
 	if get_unsup:
-
 		return X_sup, y_sup, X_unsup, y_unsup
 
 	else:
@@ -92,7 +136,30 @@ def load_data(train_transform = None, test_transform = None):
 	train_dataset: Dataset = ldict['train_dataset']
 	test_dataset: Dataset = ldict['test_dataset']
 
-	return train_dataset, test_dataset, train_dataset.classes
+	X_train = torch.Tensor(train_dataset.data).float()
+	X_test = torch.Tensor(test_dataset.data).float()
+	
+	if X_train.dim() == 3:
+		X_train = X_train.unsqueeze(1)
+		X_test = X_test.unsqueeze(1)
+	
+	if X_train.shape[-1] == 3:
+		X_train = X_train.permute(0, 3, 1, 2)
+		X_test = X_test.permute(0, 3, 1, 2)
+	
+	Xmax = X_train.max()
+	deno = 1
+
+	if Xmax > 1:
+		deno = 255
+	
+	X_train = X_train.div(deno)
+	X_test = X_test.div(deno)
+	
+	y_train = torch.LongTensor(train_dataset.targets)
+	y_test = torch.LongTensor(test_dataset.targets)
+
+	return CustomDataSet(X_train, y_train, train_transform), CustomDataSet(X_test, y_test, test_transform), train_dataset.classes
 
 	
 	# return X_train, y_train, X_test, y_test, data.classes
@@ -138,43 +205,29 @@ def calc_mean_std(images: torch.Tensor):
 
 	return mean, std
 
-class CustomDataSet(Dataset):
-	def __init__(self, x: Tensor, y: Tensor, transform = None) -> None:
-		self.x: Tensor = x
-		self.y: Tensor = y
-		
-		self.n_samples = len(y)
 
-		self.transform = transform
+@overload
+def CreateDataLoader(X: Tensor, y: Tensor, *, batch_size = 1, transform = None, device = 'cpu') -> DeviceDataLoader: ...
+
+@overload
+def CreateDataLoader(dataset: Dataset, *, batch_size = 1, transform = None, device = 'cpu') -> DeviceDataLoader: ...
 
 
-	def __getitem__(self, index):
-		x_sample = self.x[index]
-		y_sample = self.y[index]
-		if self.transform:
-			x_sample = self.transform(x_sample).type_as(x_sample)
+def CreateDataLoader(*args, batch_size = 1, transform = None, device = 'cpu'):
+	if len(args) == 1:
+		dataset = args[0]
 
-		return x_sample, y_sample
+	elif len(args) == 2:
+		X, y = args
+		dataset = CustomDataSet(X, y, transform)
+	else:
+		raise TypeError()
 	
-	def __len__(self):
-		return self.n_samples
-	
-class DeviceDataLoader():
-	def __init__(self, dl: DataLoader, device):
-		self.dl = dl
-		self.device = device
+	dl = DataLoader(dataset, batch_size = batch_size, shuffle = True, num_workers=3, pin_memory=True)
+	dl = DeviceDataLoader(dl, device)
 
-		self.batch_size = self.dl.batch_size
-		
-	def __iter__(self):
-		for b in self.dl: 
-			yield to_device(b, self.device)
+	return dl
 
-	def __len__(self):
-		return len(self.dl)
-
-	def num_data(self):
-		return len(self.dl.dataset)
 
 def plotting(history, sched_lr = False):
 	train_loss = history['train_loss']
