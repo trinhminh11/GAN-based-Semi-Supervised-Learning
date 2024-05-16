@@ -96,72 +96,29 @@ class TransposeBN(nn.Module):
 		return X
 
 class Generator(nn.Module):
-	def __init__(self, inp_size, out_size) -> None:
+	def __init__(self, latent_size, n_channels, filters = [512, 256, 128, 64]):
 		super().__init__()
 
-		out_channels = out_size[0]
+		self.initial = TransposeBN(latent_size, filters[0], 4, 1, 0)
 
-		ngf = 128
 
-		# inp_sizex1x1
-		self.deConv = nn.Sequential(
-			TransposeBN(inp_size, ngf*8, 4, 1, 0),	# 1024x4x4
-			TransposeBN(ngf*8, ngf*4),				# 512x8x8
-			TransposeBN(ngf*4, ngf*2),				# 256x16x16
-			TransposeBN(ngf*2, ngf),				# 128x32x32
-		)
+		layers = []
 
-		self.out = nn.Sequential(
-			nn.ConvTranspose2d(ngf, out_size[0], (3, 3), (2, 2)),
-			nn.AdaptiveAvgPool2d((out_size[1], out_size[2])),
-			nn.Tanh()
-		)
-	
+		for i in range(1, len(filters)):
+			layers.append(TransposeBN(filters[i-1], filters[i]))
+		
+		self.Transposed = nn.Sequential(*layers)
+
+		self.out = nn.ConvTranspose2d(filters[-1], n_channels, 4, 2, 1, bias = False)
+
+		self.tanh = nn.Tanh()
+
 	def forward(self, X: Tensor):
-		if X.dim() == 1:
-			size = len(X)
-			X = X.reshape(size, 1, 1).unsqueeze(0)
-		
-		elif X.dim() == 2:
-			B, size = X.shape
-			X = X.reshape(B, size, 1, 1)
+		out = self.initial(X)
+		out = self.Transposed(out)
+		out = self.out(out)
+		out = self.tanh(out)
 
-		X = self.deConv(X)
+		return out
 
-		X = self.out(X)
-
-		return X
-
-class Discriminator(nn.Module):
-	def __init__(self, in_channels, n_classes) -> None:
-		super().__init__()
-
-		self.n_classes = n_classes
-
-		self.feature_extracter = ConvModel(in_channels)
-
-		self.discriminator = nn.Linear(512, n_classes+1)
-	
-	def _forward_imply(self, X: Tensor):
-		if X.dim() == 2:
-			X = X.unsqueeze(0)
-
-		if X.dim() == 3:
-			X = X.unsqueeze(0)
-		
-		X = self.feature_extracter(X)
-
-		return X
-	
-	def forward(self, X: Tensor):
-		X = self._forward_imply(X)
-
-		return self.discriminator(X)
-	
-	def classify(self, X: Tensor):
-		return self.forward(X)[:, :-1]
-	
-	def discriminate(self, X):
-		return self.forward(X)[:, -1]
-		
 
