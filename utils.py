@@ -175,6 +175,21 @@ def ceil(x):
 	else:
 		return int(x)+1
 
+def fid_score(model: torch.nn.Module, real_imgs: torch.Tensor, target_imgs: torch.Tensor): 
+	# calculate targets
+	real_labels = model(real_imgs) 
+	target_labels = model(target_imgs) 
+	# calculate mean and covariance of statistics
+	m1, sigma1 = torch.mean(real_labels, dim = 0), torch.cov(real_labels)
+	m2, sigma2 = torch.mean(target_labels, dim = 0), torch.cov(real_labels)
+	# calculate sum square difference between means
+	ssdiff = torch.sum((m1 - m2)**2)
+	# calculate sqrt of product between cov 
+	covmean = (torch.matmul(sigma1, sigma2))**0.5
+	# calculate score 
+	fid = ssdiff + torch.trace(sigma1 + sigma2 - 2.0*covmean) 
+	return fid
+
 def calc_mean_std(images: torch.Tensor):
 	B, C, W, H = images.shape
 	n = B*W*H
