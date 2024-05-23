@@ -1,20 +1,23 @@
+from typing import overload
+import os
+
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 import config
-import torchvision.datasets as datasets
-
+from torchvision.datasets import MNIST, CIFAR10
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import overload
+import matplotlib.pyplot as plt
+
 
 def get_PATH(name):
 	'''
 	get PATH to store data
 	'''
 	if config.NUM_LABELLED == -1:
-		return f'{config.USED_DATA}/{name}'
+		return f'{config.USED_DATA}/{name}/_full'
 	else:
 		return f'{config.USED_DATA}/{name}/_{config.NUM_LABELLED}'
 
@@ -27,10 +30,51 @@ def set_random_seed(seed: int) -> None:
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic=  True
+    torch.backends.cudnn.deterministic = True
+
+
+class DOODLE:
+	TRAIN_PER_CLASS = 10000
+	TEST_PER_CLASS = 1000
+	def __init__(self, root: str, train: bool = True):
+		self.root = root + "/Doodles/"
+
+		self.num_classes = len(os.listdir(self.root))
+
+		self.train = train
+		if train:
+			self.num_data = self.TRAIN_PER_CLASS * self.num_classes
+		else:
+			self.num_data = self.TEST_PER_CLASS * self.num_classes
+
+		self.data = np.empty([self.num_data, 28, 28], np.int64)
+		self.targets = np.empty([self.num_data], dtype=np.int8)
+
+		self.classes = []
+
+		self.load_data()
+	
+	def load_data(self):
+		for i, file in enumerate(os.listdir(self.root)):
+			data: np.ndarray = np.load(self.root + file)
+			if self.train:
+				data = data[: self.TRAIN_PER_CLASS]
+				n = self.TRAIN_PER_CLASS
+				data = data.reshape(self.TRAIN_PER_CLASS, 28, 28)
+			else:
+				data = data[self.TRAIN_PER_CLASS: self.TRAIN_PER_CLASS + self.TEST_PER_CLASS]
+				n = self.TEST_PER_CLASS
+				data = data.reshape(self.TEST_PER_CLASS, 28, 28)
+			
+			self.data[i*n: (i+1)*n] = data
+			
+			target = file[18: -4]
+
+			self.targets[i*n: (i+1)*n] = np.full([n], i)
+
+			self.classes.append(f'{i} - {target}')
+
 
 class CustomDataSet(Dataset):
 	def __init__(self, x: Tensor, y: Tensor, transform = None) -> None:
@@ -79,12 +123,6 @@ def one_hot(y):
 	one_hot_y[torch.arange(len(y)), y] = 1
 	return one_hot_y
 
-def CreateDataLoader(X: Tensor, y: Tensor, batch_size, transform, device): 
-	ds = CustomDataSet(X, y, transform) 
-	dl = DataLoader(ds, batch_size, shuffle = True, num_workers=3) 
-	dl = DeviceDataLoader(dl, device) 
-
-	return dl
 def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
 	if get_unsup:
@@ -121,7 +159,9 @@ def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = F
 	else:
 		return X_sup, y_sup
 
-def to_device(data: Tensor, device) -> Tensor:
+# def samples_data(ds, )
+
+def to_device(data, device):
 	if isinstance(data, (list, tuple)):
 		return [to_device(x, device) for x in data]
 	
@@ -130,9 +170,9 @@ def to_device(data: Tensor, device) -> Tensor:
 def load_data(train_transform = None, test_transform = None):
 	ldict = {}
 	
-	test_dataset: Dataset = None
-	exec(f'train_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = True, download = True, transform = train_transform)', globals().update(locals()), ldict)
-	exec(f'test_dataset = datasets.{config.USED_DATA}(config.DATA_DIR, train = False, download = True, transform = test_transform)', globals().update(locals()), ldict)
+	test_dataset: Dataset
+	exec(f'train_dataset = {config.USED_DATA}(config.DATA_DIR, train = True)', globals().update(locals()), ldict)
+	exec(f'test_dataset = {config.USED_DATA}(config.DATA_DIR, train = False)', globals().update(locals()), ldict)
 	train_dataset: Dataset = ldict['train_dataset']
 	test_dataset: Dataset = ldict['test_dataset']
 
@@ -161,9 +201,6 @@ def load_data(train_transform = None, test_transform = None):
 
 	return CustomDataSet(X_train, y_train, train_transform), CustomDataSet(X_test, y_test, test_transform), train_dataset.classes
 
-	
-	# return X_train, y_train, X_test, y_test, data.classes
-
 
 def print_config():
 	
@@ -185,8 +222,8 @@ def calc_mean_std(images: torch.Tensor):
 	B, C, W, H = images.shape
 	n = B*W*H
 
-	mean = [0]*C
-	std = [0]*C
+	mean = [0.]*C
+	std = [0.]*C
 
 	for image in images:
 		for i in range(C):
@@ -229,52 +266,35 @@ def CreateDataLoader(*args, batch_size = 1, transform = None, device = 'cpu'):
 	return dl
 
 
-def plotting(history, sched_lr = False):
-	train_loss = history['train_loss']
-	val_loss = history['val_loss']
-	train_acc = history['train_acc']
-	val_acc = history['val_acc']
-	
-	epochs = len(train_loss)
+def plotting(history: dict[str, dict[str, list[float]]]):
+	epochs = history['epochs']
+	num_axis = len(history)-1
 
+	fig, axis = plt.subplots(1, num_axis, figsize = (8*num_axis, 5))
 
-	if sched_lr:
-		fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize = (24, 5))
+	try:
+		axis[0]
+	except:
+		axis = [axis]
 
-		ax3.plot(np.arange(len(history['lrs'])), history['lrs'])
+	idx = 0
+	for name, y in history.items():
+		if name == 'epochs':
+			continue
+		axis[idx].set_title(name)
 
-		ax3.set_xlabel('batches')
-		ax3.set_ylabel('learning rate')
-
-		batch_length = len(history['lrs']) // epochs
-
-		t = epochs//5
-
-		xticks = np.arange(0, len(history['lrs'])+1, t*batch_length)
-		xlabels = np.arange(0, len(xticks))*t
-
-		ax3.set_xticks(xticks, xlabels)
+		x = np.arange(len(y))
+		axis[idx].plot(x, y, label = name)
 		
-	else:
-		fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (16, 5))
-	
-	epochs = np.arange(epochs)	
-
-
-	ax1.plot(epochs, train_loss, label = 'train_loss')
-	ax1.plot(epochs, val_loss, label = 'val_loss')
-
-	ax2.plot(epochs, train_acc, label = 'train_acc')
-	ax2.plot(epochs, val_acc, label = 'val_acc')
-
-	ax1.legend()
-	ax2.legend()
-
-	ax1.set_xlabel('epochs')
-	ax1.set_ylabel('loss')
-
-	ax2.set_xlabel('epochs')
-	ax2.set_ylabel('accuracy')
-
+		# if name == 'Learning rate':
+		axis[idx].set_xticks(np.linspace(0, len(y), epochs)[::2], np.arange(0, epochs, 2))
+		
+		# else:
+		# 	axis[idx].set_xticks(np.linspace(0, epochs, epochs)[::2], np.arange(0, epochs, 2))
+		
+		axis[idx].legend()
+		axis[idx].set_xlabel('epochs')
+		axis[idx].set_ylabel(name)
+		idx += 1
 
 	plt.show()

@@ -2,32 +2,43 @@ RANDOM_SEED = 11042004
 
 DATA_DIR = "./data"
 
-USED_DATA = "CIFAR10"
+# USED_DATA = "CIFAR10"
 # USED_DATA = "MNIST"
+USED_DATA = "DOODLE"
 
-NUM_LABELLED = 1000
+NUM_LABELLED = 100
 
 DEVICE = "cuda:0"
 
-EPOCHS = 10
+EPOCHS = 20
 BATCH_SIZE = 32
-LEARNING_RATE = 0.0004
+LEARNING_RATE = 0.0002
 SCHED = False
-
-'''
-CIFAR-10:
-full label: epochs = 50, BATCH_SIZE = 512, LEARNING_RATE = 0.01, weight_decay = 0, grad_clip = None, optim = Adam, sched = True
-other: BATCH_SIZE = 64
-
-MNIST:
-epochs = 20, LEARNING_RATE = 0.0004, threshold = 0.09925, weight_decay = 0, grad_clip = None, optim = Adam, sched = False
-
-full label: BATCH_SIZE = 512
-other: BATCH_SIZE = 32
-'''
-
-
 
 # GAN Config
 
 GAN_BATCH_SIZE = 128
+
+
+
+'''
+CNN:
+	CIFAR-10:
+	epochs = 50, optim = Adam, sched = True
+
+	full label: BATCH_SIZE = 512, LEARNING_RATE = 0.01
+	other: BATCH_SIZE = 64, 128, 256, LEARNING_RATE = 0.001
+
+	MNIST:
+	LEARNING_RATE = 0.0002, optim = Adam, sched = False
+
+	full label: BATCH_SIZE = 512, epochs=5,
+	other: BATCH_SIZE = 32, epochs = 20
+GANSSL:
+	CIFAR-10:
+
+
+	MNIST:
+	epochs = 20, batch_size = 64, step_per_epoch = 100, lr = 0.00001, optim = RMSprop
+
+'''
