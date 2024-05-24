@@ -3,6 +3,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 import config
 import torchvision.datasets as datasets
+import torchvision.transforms as tt 
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,6 +48,7 @@ class CustomDataSet(Dataset):
 		if self.y != None:
 			y_sample = self.y[index]
 		if self.transform:
+			# x_sample = self.transform(x_sample)
 			x_sample = self.transform(x_sample).type_as(x_sample)
 
 		if self.y != None:
@@ -130,8 +132,8 @@ def load_data(train_transform = None, test_transform = None):
 	train_dataset: Dataset = ldict['train_dataset']
 	test_dataset: Dataset = ldict['test_dataset']
 
-	X_train = torch.Tensor(train_dataset.data).float()
-	X_test = torch.Tensor(test_dataset.data).float()
+	X_train = torch.Tensor(train_dataset.data)
+	X_test = torch.Tensor(test_dataset.data)
 	
 	if X_train.dim() == 3:
 		X_train = X_train.unsqueeze(1)
@@ -140,6 +142,12 @@ def load_data(train_transform = None, test_transform = None):
 	if X_train.shape[-1] == 3:
 		X_train = X_train.permute(0, 3, 1, 2)
 		X_test = X_test.permute(0, 3, 1, 2)
+	# # apply RandAugment
+	# X_train = tt.RandAugment().forward(X_train)
+
+	# change to float 
+	X_train = X_train.float()
+	X_test = X_test.float()
 	
 	Xmax = X_train.max()
 	deno = 1
