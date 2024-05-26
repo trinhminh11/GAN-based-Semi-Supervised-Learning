@@ -36,10 +36,10 @@ def set_random_seed(seed: int) -> None:
 
 
 class DOODLE:
-	TRAIN_PER_CLASS = 10000
+	TRAIN_PER_CLASS = 6000
 	TEST_PER_CLASS = 1000
 	def __init__(self, root: str, train: bool = True):
-		self.root = root + "/Doodles/"
+		self.root = root + "/DOODLE/"
 
 		self.num_classes = len(os.listdir(self.root))
 
@@ -62,11 +62,9 @@ class DOODLE:
 			if self.train:
 				data = data[: self.TRAIN_PER_CLASS]
 				n = self.TRAIN_PER_CLASS
-				data = data.reshape(self.TRAIN_PER_CLASS, 28, 28)
 			else:
 				data = data[self.TRAIN_PER_CLASS: self.TRAIN_PER_CLASS + self.TEST_PER_CLASS]
 				n = self.TEST_PER_CLASS
-				data = data.reshape(self.TEST_PER_CLASS, 28, 28)
 			
 			self.data[i*n: (i+1)*n] = data
 			
