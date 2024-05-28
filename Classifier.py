@@ -6,7 +6,7 @@ from ConvModel import ConvModel
 from utils import DeviceDataLoader
 from torch import Tensor
 
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 
 class Classifier(nn.Module):

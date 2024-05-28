@@ -1,0 +1,22 @@
+MNIST: 
+epochs = 10
+batch_size = 64 
+batch_per_epoch = 50
+learning_rate = 1e-5
+optim = RMSprop
+grad_clip = False
+
+
+
+NUM_LABLELLED: 
+50: 70.86%
+100: 84.47%
+500: 95.2%
+
+accuracy when apply i-th gen model (NUM_LABLELLED = 100, add Dropout, no OneCycleLR): 
+4: 0.8635
+5: 0.862
+6: 0.8414
+7: 0.8429
+8: 0.8369
+9: 0.8347

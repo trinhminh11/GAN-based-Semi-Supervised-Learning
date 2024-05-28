@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader, random_split
 import config
-import torchvision.datasets as datasets
+from torchvision.datasets import MNIST
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -287,7 +287,7 @@ def CreateDataLoader(*args, batch_size = 1, transform = None, device = 'cpu'):
 	return dl
 
 
-def plotting(history: dict[str, dict[str, list[float]]]):
+def plotting(history):
 	epochs = history['epochs']
 	num_axis = len(history)-1
 

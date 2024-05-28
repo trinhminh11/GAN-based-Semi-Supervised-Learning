@@ -1,0 +1,16 @@
+SETTINGS: 
+    epochs = 20
+    batch_size = 64 
+    batch_per_epoch = 100
+    max_lr = 1e-5
+    optim = optim.RMSprop
+    pretrainGen = 09
+
+MNIST:
+    50: 0.908
+    100: 0.9543
+    500: 0.9755
+DOODLE: 
+    50: 0.3189
+    100: 0.6629
+    500: 0.8663

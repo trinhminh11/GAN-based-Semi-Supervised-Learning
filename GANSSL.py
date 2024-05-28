@@ -6,7 +6,7 @@ from torch.utils.data import random_split
 import torchvision.transforms as tt
 from utils import DeviceDataLoader, CustomDataSet
 
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from typing import Type
 

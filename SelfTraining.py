@@ -1,25 +1,26 @@
 import torch
-from typing import Type
-from utils import CreateDataLoader
-from tqdm import tqdm
-class SelfTraining: 
-    def __init__(self, X_sup:torch.Tensor, y_sup:torch.Tensor, X_unsup:torch.Tensor, device): 
-        self.X_sup = X_sup 
-        self.y_sup = y_sup 
-        self.X_unsup = X_unsup
-        self.CEloss = torch.nn.CrossEntropyLoss()
-        self.device = device 
+from utils import CustomDataSet
+import torch.nn as nn
 
-    def selfTraining(self, epochs, teacher_model: torch.nn.Module, lr, optim: Type[torch.optim.Optimizer], transform):
-         for epoch in range(epochs):
-            teacher_model.train() 
-            teacher_model.fit(self.X_sup, self.y_sup, lr, optim)
-            teacher_model.eval() 
-            pseudo_labels = teacher_model(self.X_unsup)
-            student_model = teacher_model
-            full_X = torch.cat(self.X_sup, self.X_unsup) 
-            full_y = torch.cat(self.y_sup, pseudo_labels) 
-            student_model.train() 
-            student_model.fit(full_X, full_y, lr, optim)
-            #  assign student model = teacher model 
-            student_model = teacher_model
+class SelfTraining: 
+    def __init__(self, model:nn.Module))
+def label_unk(model, mnist_labeled:CustomDataSet ,phase:int, device):
+    model.eval()
+    # minimum confidence for labelling, otherwise ignored
+    # decreased non-linearly for each training phase
+    print("Threshold: ",1-0.0005*(1+phase)**1.45)
+    with torch.no_grad():
+        for i, l in enumerate(mnist_labeled.data1):
+            l=l.unsqueeze(0).to(device)
+            outputs = model(l)
+            ind=torch.argmax(outputs,axis=1).item()
+            
+            if mnist_labeled.labels1[i]==-1 :
+                if outputs[0][ind].item() > max(0.55,1-0.0005*(1+phase)**1.45):
+                    mnist_labeled.labels1[i]=ind
+            else:
+                # labels with less confidence are removed from traiing
+                if outputs[0][ind].item() < 0.55:
+                    mnist_labeled.labels1[i]=-1
+    # modify training data (fn mentioned above)
+    mnist_labeled.set_data_for_train()
