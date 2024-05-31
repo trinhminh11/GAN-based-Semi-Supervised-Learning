@@ -11,8 +11,6 @@ from pygameutils import Genom, Line, Table, Button, GroupButton, Label
 
 from PIL import Image
 
-from model import Model
-import utils
 
 import pickle
 
@@ -154,14 +152,8 @@ class MyApp:
 
 	def pred(self, images): 
 		for i in range(len(self.models)):
-			if i == len(self.models)-1 and self.n_sup == 'full':
-				self.result_table.table[1][i].text = "slow"
-				self.result_table.table[2][i].text = "slow"
-				continue
 			try:
 				m = self.models[i][self.dataset][self.n_sup]
-				if i == len(self.models)-1:
-					images = toknn(images)
 				
 				pred, res = m.evaluate(images)
 
@@ -377,36 +369,15 @@ def init_gen_model():
 
 	return models
 
-def init_KNN():
-	models = {'DOODLE': {}, 'MNIST': {}, "EMNIST": {}}
-
-	
-
-	for dataset in DATASETS:
-		ns = ['50', '100', '500']
-
-		if dataset == "EMNIST":
-			ns = ['100', '200', '1000']
-
-		for n in ns:
-			with open(f"{dataset}/KNN/_{n}.pkl", 'rb') as f:
-				models[dataset][str(n)] = pickle.load(f)
-	
-	return models
-
 def main():
 	models = init_DL_model()
 	gens = init_gen_model()
-	knn = init_KNN()
-
 
 	app = MyApp()
 
 
 	for name, ms in models.items():
 		app.add_model(name, ms)
-
-	app.add_model('KNN', knn)
 
 	
 	for name, m in gens.items():
