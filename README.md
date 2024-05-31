@@ -34,6 +34,12 @@ for lighter used (exlude KNN) used:
 
 ```git clone -b MT https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
 
+for even lighter used (only app, without training and KNN) used:
+
+```git clone -b demo https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
+
+* access to the directory:
+
 ```cd GAN-based-Semi-Supervised-Learning```
 
 * Install required libraries via requirements.txt
