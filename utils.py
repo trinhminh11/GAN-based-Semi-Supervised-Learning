@@ -199,10 +199,16 @@ def supervised_samples(a, b, c, d = False, e = False):
 			y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
 	
 	if get_unsup:
-		return CustomDataSet(X_sup, y_sup, ds.transform), CustomDataSet(X_unsup, y_unsup, ds.transform)
+		if type(a) == CustomDataSet:
+			return CustomDataSet(X_sup, y_sup, ds.transform), CustomDataSet(X_unsup, y_unsup, ds.transform)
+		else:
+			return X_sup, y_sup, X_unsup, y_unsup
 
 	else:
-		return CustomDataSet(X_sup, y_sup, ds.transform)
+		if type(a) == CustomDataSet:
+			return CustomDataSet(X_sup, y_sup, ds.transform)
+		else:
+			return X_sup, y_sup
 
 
 def to_device(data, device):
