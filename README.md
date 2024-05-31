@@ -26,17 +26,17 @@ To run this project, you must have Python version >= 3.9 installed.
 
 ## How to use: 
 To use this project using git, please do the following.
-* Firstly, clone the repository's main branch into your desired directory using your git command prompt and access the directory by this command.
+* Clone the repository's main branch into your desired directory using your git command prompt and access the directory by this command.
 
 ```git clone -b master https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
 
 ```cd GAN-based-Semi-Supervised-Learning```
 
-* Secondly, install required libraries via requirement.txt
+* Install required libraries via requirements.txt
 
-```pip install -q -r requirements.txt```
+```pip install -r requirements.txt```
 
-* Finally, run the project by 
+* Run the project with
 
 ```python main.py```
 
