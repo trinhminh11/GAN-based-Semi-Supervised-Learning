@@ -1,14 +1,18 @@
 from typing import overload
 import os
+import config
+
 
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset, DataLoader, random_split
-import config
+from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import MNIST, CIFAR10
 import torchvision.datasets as datasets
-import matplotlib.pyplot as plt
 import numpy as np
+
+import torch.nn.functional as F
+import seaborn as sn
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
@@ -23,16 +27,16 @@ def get_PATH(name):
 		return f'{config.USED_DATA}/{name}/_{config.NUM_LABELLED}'
 
 def set_random_seed(seed: int) -> None:
-    """
-    Sets the seeds at a certain value.
-    :param seed: the value to be set
-    """
-    print("Setting seeds ...... \n")
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+	"""
+	Sets the seeds at a certain value.
+	:param seed: the value to be set
+	"""
+	print("Setting seeds ...... \n")
+	torch.manual_seed(seed)
+	torch.cuda.manual_seed(seed)
+	torch.cuda.manual_seed_all(seed)
+	torch.backends.cudnn.benchmark = False
+	torch.backends.cudnn.deterministic = True
 
 class EMNIST(datasets.EMNIST):
 	def __init__(self, root, train, split = "letters", download = False):
@@ -277,6 +281,49 @@ def CreateDataLoader(*args, batch_size = 1, transform = None, device = 'cpu'):
 
 	return dl
 
+def cal_confusion_matrix(model, dl:DeviceDataLoader, n_classes = 10): 
+	mat = [[0 for _ in range(n_classes)] for _ in range(n_classes)]
+	for batch in dl: 
+		imgs, labels = batch
+		labels = labels.to('cpu')
+		pred = F.softmax(model(imgs).to('cpu') , dim = 1)
+		for i in range(len(labels)): 
+			mat[labels[i]][torch.argmax(pred[i])] += 1
+	return np.array(mat)
+
+def draw_cf_matrix(cf_matrix: np.ndarray, classes):
+	# disp = ConfusionMatrixDisplay(confusion_matrix=cf_matrix,
+	# 							display_labels=classes)
+
+	df_cm = pd.DataFrame(cf_matrix, index = [i for i in classes],
+				  columns = [i for i in classes])
+	plt.figure(figsize = (10,7))
+	sn.heatmap(df_cm, annot=True, cmap='Blues')
+
+	# disp.plot()
+	# plt.show()
+
+def precision(cf_matrix: np.ndarray): 
+	p = []
+	for i in range(cf_matrix.shape[0]): 
+		TP = cf_matrix[i][i]
+		T = cf_matrix.sum(axis = 0)[i]
+		p.append(TP/T)
+	return np.array(p)
+
+def recall(cf_matrix: np.ndarray): 
+	r = [] 
+	for i in range(cf_matrix.shape[0]): 
+		TP = cf_matrix[i][i]
+		T = cf_matrix.sum(axis = 1)[i]
+		r.append(TP/T)
+	
+	return np.array(r)
+
+def f1_score(cf_matrix): 
+	p = precision(cf_matrix)
+	r = recall(cf_matrix)
+	return np.divide(np.multiply(2*p, r), np.add(p, r))
 
 def plotting(history: dict[str, dict[str, list[float]]]):
 	epochs = history['epochs']

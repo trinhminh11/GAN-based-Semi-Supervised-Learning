@@ -65,6 +65,9 @@ class GANSSL:
 	def load_gen_state_dict(self, file):
 		self.generator.load_state_dict(torch.load(file))
 	
+	def __call__(self, X):
+		return self.discriminator.forward(X)
+	
 	@torch.no_grad()
 	def evaluate(self, dataloader: DeviceDataLoader):
 		self.discriminator.eval()
