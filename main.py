@@ -290,7 +290,6 @@ class MyApp:
 
 		img = img.resize((32, 32))
 
-		img.save('test.png')
 
 
 		self.pred(self.to_Tensor(img))
