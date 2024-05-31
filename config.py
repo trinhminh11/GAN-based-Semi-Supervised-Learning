@@ -3,9 +3,9 @@ RANDOM_SEED = 11042004
 DATA_DIR = "./data"
 
 # USED_DATA = "CIFAR10"
-USED_DATA = "MNIST"
+# USED_DATA = "MNIST"
 # USED_DATA = "EMNIST"
-# USED_DATA = "DOODLE"
+USED_DATA = "DOODLE"
 
 NUM_LABELLED = -1
 
@@ -35,3 +35,17 @@ GANSSL:
 	epochs = 20, batch_size = 64, step_per_epoch = 100, lr = 0.00001, optim = RMSprop
 
 '''
+
+# Pygame CONST
+WIDTH, HEIGHT = 820, 740
+FPS = None
+
+DRAW_WIDTH, DRAW_HEIGHT = (640, 640)
+
+DATASETS = ["MNIST", "DOODLE", "EMNIST"]
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
+
+BACKGROUND = (127, 127, 127)

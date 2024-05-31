@@ -205,7 +205,7 @@ class GANSSL:
 			
 			tqdm.write("")
 
-			tqdm.write(f"acc = {self.evaluate(test_dl)}")
+			# tqdm.write(f"acc = {self.evaluate(test_dl)}")
 
 			if sched:
 				history['Learning rate'] += lrs
