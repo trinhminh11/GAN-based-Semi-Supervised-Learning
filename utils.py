@@ -16,6 +16,8 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
+from typing import Union
+
 
 def get_PATH(name):
 	'''
@@ -100,6 +102,10 @@ class CustomDataSet(Dataset):
 		self.n_samples = len(x)
 
 		self.transform = transform
+	
+	def to(self, device):
+		self.x = self.x.to(device)
+		self.y = self.y.to(device)
 
 
 	def __getitem__(self, index):
@@ -139,8 +145,31 @@ def one_hot(y):
 	one_hot_y[torch.arange(len(y)), y] = 1
 	return one_hot_y
 
-def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False):
+@overload
+def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = False) -> Union[tuple[Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]]: ...
+
+@overload
+def supervised_samples(ds: CustomDataSet, n_samples, n_classes, get_unsup = False) -> Union[tuple[CustomDataSet, CustomDataSet], CustomDataSet]: ...
+
+
+def supervised_samples(a, b, c, d = False, e = False):
+	if type(a) == CustomDataSet:
+		ds = a
+		X = ds.x
+		y = ds.y
+		n_samples = b
+		n_classes = c
+		get_unsup = d
+
+	elif type(a) == Tensor and type(b) == Tensor:
+		X = a
+		y = b
+		n_samples = c
+		n_classes = d
+		get_unsup = e
+	
 	X_sup, y_sup = Tensor().type_as(X), Tensor().type_as(y)
+
 	if get_unsup:
 		X_unsup, y_unsup = Tensor().type_as(X), Tensor().type_as(y)
 
@@ -170,12 +199,11 @@ def supervised_samples(X: Tensor, y: Tensor, n_samples, n_classes, get_unsup = F
 			y_unsup = torch.cat((y_unsup, Tensor([i]*len(unsup_idx)).type_as(y)))
 	
 	if get_unsup:
-		return X_sup, y_sup, X_unsup, y_unsup
+		return CustomDataSet(X_sup, y_sup, ds.transform), CustomDataSet(X_unsup, y_unsup, ds.transform)
 
 	else:
-		return X_sup, y_sup
+		return CustomDataSet(X_sup, y_sup, ds.transform)
 
-# def samples_data(ds, )
 
 def to_device(data, device):
 	if isinstance(data, (list, tuple)):
