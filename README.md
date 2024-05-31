@@ -68,3 +68,8 @@ with
   <img src="GANSSLloss2.png" alt = "UI" >
   
 </p>
+
+
+### Note
+
+Because the data store in KNN are too large to upload to github, if you want to evaluate KNN when using all labelled data, you should run kNN.ipynb first for each USED_DATA set in config.py to get pickle file for KNN Algorithm
