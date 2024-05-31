@@ -54,7 +54,7 @@ or
 
 ```python3 main.py```
 
-* if you want to train, run training_{Algorithm}.ipynb, changes USED_DATA and NUM_LABELLED, device in config.py
+* if you want to train, run training_{Algorithm}.ipynb, changes USED_DATA and NUM_LABELLED and DEVICE in config.py
 
 ### Data Preporcessing
 The above datasets' original dimensions are 28 x 28 x 1 RGB images. However, we will resize them to 32 x 32 x 1 images and adjust the pixel values from 0 to 255 to a range of -1 to 1.
