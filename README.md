@@ -55,7 +55,7 @@ We will implement with euclidean distance with K = 3.
 ### Convolutional Neural network
 The Architechture of CNN are represent as follow: 
 <p align="center">
-  <img src="CNNarchitecture.png" alt = "UI" width="800" height="450" >
+  <img src="CNNarchitecture.png" alt = "UI" width="820" height="740" >
   
 </p>
 
