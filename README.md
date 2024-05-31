@@ -15,7 +15,7 @@ And for type of training:
 
 
 <p align="center">
-  <img src="Example.png" alt = "UI" width="400" height="270" >
+  <img src="Example.png"  >
   
 </p>
 
@@ -55,7 +55,7 @@ We will implement with euclidean distance with K = 3.
 ### Convolutional Neural network
 The Architechture of CNN are represent as follow: 
 <p align="center">
-  <img src="CNNarchitecture.png" alt = "UI" width="820" height="740" >
+  <img src="CNNarchitecture.png"  >
   
 </p>
 
@@ -63,9 +63,9 @@ The Architechture of CNN are represent as follow:
 We use the same Architechture of CNN for Discriminator and using trained Generator and trained Discriminator with below Loss function mentiond in Improved Techniques for Training GANs (https://arxiv.org/abs/1606.03498):
 
 <p align="center">
-  <img src="GANSSLloss1.png" alt = "UI" >
+  <img src="GANSSLloss1.png" >
 with
-  <img src="GANSSLloss2.png" alt = "UI" >
+  <img src="GANSSLloss2.png" >
   
 </p>
 
