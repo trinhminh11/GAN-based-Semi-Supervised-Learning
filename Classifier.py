@@ -25,6 +25,9 @@ class Classifier(nn.Module):
 		out = self.conv(X)
 		out = self.classifier(out)
 		return out
+
+	def load(self, file):
+		self.load_state_dict(torch.load(file))
 	
 	@staticmethod
 	def corrected(preds, labels):

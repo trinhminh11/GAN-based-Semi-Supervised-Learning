@@ -6,6 +6,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, DataLoader, random_split
 import config
 from torchvision.datasets import MNIST, CIFAR10
+import torchvision.datasets as datasets
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -32,6 +33,19 @@ def set_random_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+
+class EMNIST(datasets.EMNIST):
+	def __init__(self, root, train, split = "letters", download = False):
+		super().__init__(root, split, train = train, download = download)
+
+
+		self.data = torch.swapaxes(self.data, 1, 2)
+
+		# self.data = tt.RandomHorizontalFlip(1)(self.data)
+
+		self.targets -= 1
+
+		self.classes = self.classes[1:]
 
 
 class DOODLE:
