@@ -34,7 +34,7 @@ for lighter used (exlude KNN) used:
 
 ```git clone -b MT https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
 
-for even lighter used (only app, without training) used:
+for even lighter used (only app, without training and KNN) used:
 
 ```git clone -b demo https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
 
