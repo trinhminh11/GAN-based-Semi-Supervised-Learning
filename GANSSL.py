@@ -1,10 +1,15 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
+import torch.nn.grad
 import torch.optim as optim
+import torch.utils
 from torch.utils.data import random_split
 import torchvision.transforms as tt
 from utils import DeviceDataLoader, CustomDataSet
+from ConvModel import ConvModel
+from copy import deepcopy
+
 
 from tqdm.notebook import tqdm
 
@@ -16,7 +21,23 @@ def custom_function(X: Tensor):
 	D_x = Z_x / (Z_x+1)
 	return D_x
 
-class GAN:
+class Discriminator(nn.Module):
+	def __init__(self, in_channels, n_classes) -> None:
+		super().__init__()
+
+		self.conv = ConvModel(in_channels)
+
+		self.dropout = nn.Dropout(0.5)
+
+		self.classifier = nn.Linear(512, n_classes)
+		
+	def forward(self, X: Tensor):
+		out = self.conv(X)
+		out = self.dropout(out)
+		out = self.classifier(out)
+		return out
+
+class GANSSL:
 	def __init__(self, generator: nn.Module, discriminator: nn.Module, latent_size, device) -> None:
 		self.generator = generator
 		self.discriminator = discriminator
@@ -35,8 +56,8 @@ class GAN:
 		self.to(device)
 
 	def to(self, device):
-		self.generator = self.generator.to(device)
-		self.discriminator = self.discriminator.to(device)
+		self.generator = self.generator.to(device, non_blocking=True)
+		self.discriminator = self.discriminator.to(device, non_blocking=True)
 	
 	def load_dis_state_dict(self, file):
 		self.discriminator.load_state_dict(torch.load(file))
@@ -74,7 +95,7 @@ class GAN:
 	def discriminator_real_step(self, X):
 		batch_size = X.shape[0]
 		
-		y_hat = torch.zeros([batch_size], device = self.device)
+		y_hat = torch.ones([batch_size], device = self.device)
 
 		loss = self.discriminator_step(X, y_hat)
 		
@@ -110,7 +131,7 @@ class GAN:
 		return loss
 	
 	
-	def fit(self, epochs, batch_size, batch_per_epoch, dis_lr, sup_ds: CustomDataSet, full_ds: CustomDataSet, optimizer: Type[optim.Optimizer], opt_params = {}, sched = False, PATH = ".", save = False):
+	def fit(self, epochs, batch_size, batch_per_epoch, dis_lr, sup_ds: CustomDataSet, full_ds: CustomDataSet, test_dl, optimizer: Type[optim.Optimizer], opt_params = {}, sched = False, PATH = ".", save = False, keep_best = True):
 
 		history: dict[str, list] = {'epochs': epochs, 'Loss': []}
 
@@ -127,6 +148,10 @@ class GAN:
 		n_sup = len(sup_ds)
 		n_data = len(full_ds)
 
+		best_acc = -1
+
+		best_model = None
+
 
 		for epoch in range(epochs):
 			self.discriminator.train()
@@ -142,10 +167,14 @@ class GAN:
 				unsup_images, _ = random_split(full_ds, [batch_size, n_data-batch_size])[0][:]
 				real_loss = self.discriminator_real_step(unsup_images.to(self.device))
 				fake_loss = self.discriminator_fake_step(batch_size)
-				D_loss = (real_loss + fake_loss)/2
+				D_loss = (real_loss + fake_loss)/10
 
 				loss = C_loss + D_loss
 				loss.backward()
+
+				# torch.nn.utils.clip_grad_norm_(self.discriminator.parameters(), 1)
+
+				# torch.nn.utils.clip_grad_value_(self.discriminator.parameters(), 0.1)
 
 				optimizerD.step()
 
@@ -164,14 +193,26 @@ class GAN:
 					s += f', lrs: {lrs[0]:.6f}-> {lrs[-1]:.6f}'
 
 				tqdm.write(s, end = "\r")
+			
+			acc = self.evaluate(test_dl)
 
+			if acc > best_acc:
+				best_acc = acc
+				best_model = deepcopy(self.discriminator.state_dict())
+			
 			tqdm.write("")
+
+			tqdm.write(f"acc = {self.evaluate(test_dl)}")
 
 			if sched:
 				history['Learning rate'] += lrs
 
+		
+		if keep_best:
+			self.discriminator.load_state_dict(best_model)
 
-			if save:
-				torch.save(self.discriminator.state_dict(), PATH)
+		if save:
+			torch.save(self.discriminator.state_dict(), PATH)
+				
 				
 		return history
