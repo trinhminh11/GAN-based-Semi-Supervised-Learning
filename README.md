@@ -30,6 +30,10 @@ To use this project using git, please do the following.
 
 ```git clone -b master https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
 
+for lighter used (exlude KNN) used:
+
+```git clone -b MT https://github.com/trinhminh11/GAN-based-Semi-Supervised-Learning```
+
 ```cd GAN-based-Semi-Supervised-Learning```
 
 * Install required libraries via requirements.txt
