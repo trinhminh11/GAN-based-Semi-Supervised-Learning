@@ -1,0 +1,33 @@
+k = 1, euclidean - manhattan - chebyshev
+    Accuracy for 50 samples: [0.6549, 0.6335, 0.4932]
+    Accuracy for 100 samples: [0.7045, 0.6873, 0.5814]
+    Accuracy for 500 samples: [0.8592, 0.8432, 0.7642]
+    Accuracy for 10000 samples: [0.8983, 0.8804, 0.8302]
+
+k = 2, euclidean - manhattan
+    Accuracy for 50 samples: [0.6158, 0.5881]
+    Accuracy for 100 samples: [0.67, 0.6415]
+    Accuracy for 500 samples: [0.8517, 0.8255]
+    Accuracy for 10000 samples: [0.8832, 0.8588]
+
+k = 5, euclidean - manhattan
+    Accuracy for 50 samples: [0.6336, 0.6065]
+    Accuracy for 100 samples: [0.6948, 0.6695]
+    Accuracy for 500 samples: [0.8583, 0.8364]
+    Accuracy for 1000 samples: [0.895, 0.8751]
+
+k = 5 with weighting, euclidean
+    [0.5991, 0.688, 0.8573, 0.8943]
+    [0.6519, 0.7192, 0.8667, 0.8998] 
+
+k = 3 with weighting, euclidean
+    [0.5887, 0.6712, 0.8578, 0.8924]
+    [0.6377, 0.7006, 0.8656, 0.8975]
+
+k = 2 with weighting, euclidean
+    [0.5783, 0.6898, 0.853, 0.8783]
+    [0.6356, 0.7622, 0.8708, 0.8931]
+
+k = 1
+    [0.6671, 0.7309, 0.8243, 0.8591]
+
